@@ -154,5 +154,45 @@ void computeTTCLidar(std::vector<LidarPoint> &lidarPointsPrev,
 
 void matchBoundingBoxes(std::vector<cv::DMatch> &matches, std::map<int, int> &bbBestMatches, DataFrame &prevFrame, DataFrame &currFrame)
 {
-    // ...
+  // loop over bboxes in previous frame
+  for (const auto& prevBbox : prevFrame.boundingBoxes)
+  {
+    // maintains map between bounding box IDs (current frame) and keypoints
+    std::multimap<int, int> bboxKpAssociations;
+    
+    // find matches of kp from this bbox
+    for(const auto& match : matches)
+    {
+      if (prevBbox.roi.contains(prevFrame.keypoints.at(match.queryIdx).pt))
+      {
+        // if keypoint in prev bounding box, find bbox in current frame that it belongs to
+        for(const auto& currentBbox : currFrame.boundingBoxes)
+        {
+          if (currentBbox.roi.contains(currFrame.keypoints.at(match.trainIdx).pt))
+          {
+            bboxKpAssociations.insert(std::pair<int, int>{currentBbox.boxID, match.trainIdx});
+          }
+        }
+      }
+    }
+    
+    // find bbox in current frame with max associated keypoints
+    int maxAssociations = 0;
+    int matchedBboxId = -1;
+    
+    if (bboxKpAssociations.size() > 0)
+    {
+      for(const auto& bboxKpPair : bboxKpAssociations)
+      {
+        int boxid = bboxKpPair.first;
+        int numOfKeypoints = bboxKpAssociations.count(boxid);
+        if (numOfKeypoints > maxAssociations)
+        {
+          maxAssociations = numOfKeypoints;
+          matchedBboxId = boxid;
+        }
+      }
+      bbBestMatches.insert(std::pair<int, int>{prevBbox.boxID, matchedBboxId});
+    }
+  }
 }
