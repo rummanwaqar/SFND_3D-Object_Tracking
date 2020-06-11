@@ -148,7 +148,19 @@ void computeTTCCamera(std::vector<cv::KeyPoint> &kptsPrev, std::vector<cv::KeyPo
 void computeTTCLidar(std::vector<LidarPoint> &lidarPointsPrev,
                      std::vector<LidarPoint> &lidarPointsCurr, double frameRate, double &TTC)
 {
-    // ...
+  auto sortFunction = [](const LidarPoint& a, const LidarPoint& b) {
+    return a.x < b.x;
+  };
+  
+  // take median x-distance
+  std::sort(lidarPointsPrev.begin(), lidarPointsPrev.end(), sortFunction);
+  std::sort(lidarPointsCurr.begin(), lidarPointsCurr.end(), sortFunction);
+  double d0 = lidarPointsPrev[lidarPointsPrev.size()/2].x;
+  double d1 = lidarPointsCurr[lidarPointsCurr.size()/2].x;
+  
+  // use constant velocity model to calculate TTC
+  // TTC = d1 * delta_t / (d0 - d1)
+  TTC = d1 * 1.0 / frameRate / (d0 - d1);
 }
 
 
